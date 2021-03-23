@@ -187,7 +187,7 @@ class _WelcomeScreenBodyState extends State<WelcomeScreenBody> {
                         ]
                     ),
                 ),
-
+                child: Container(),
               ),
             ),
           )

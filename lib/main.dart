@@ -1,16 +1,50 @@
+import 'package:accelerometer_flutter_module/userDetailsScreen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'welcomeScreen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
-void main() => runApp(MyApp());
+String screenName;
+
+void main() async {
+  WidgetsFlutterBinding .ensureInitialized();
+  await getSharedPreferenceData();
+  print("greattttttttttttttttttttttttttttttt");
+  runApp(MyApp());
+}
+/// function to decide screen 
+Future<void>getSharedPreferenceData() async{
+  SharedPreferences pref = await SharedPreferences.getInstance();
+  String d = pref.getString('HomeOrDetailsScreen');
+  if(d=="DetailsScreen"){
+    screenName = "/userDetailScreen";
+  }else {
+    String data = pref.getString("loggedInfo");
+    print(data);
+    print("dddddddddddddddddddddddddddddd");
+    if (data == "LoggedIN") {
+      screenName = "/";
+      print(screenName);
+    } else {
+      screenName = "/WelcomeScreen";
+    }
+  }
+}
 
 class MyApp extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: UserMainScreen(),
+     initialRoute: screenName,
+      routes:{
+        "/":(context)=> UserMainScreen(),
+        "/WelcomeScreen":(context)=>WelcomeScreen(),
+        "/userDetailScreen":(context)=>UserDetailScreen(),
+      },
     );
   }
 }
@@ -31,6 +65,7 @@ class _UserMainScreenState extends State<UserMainScreen>
   double height;
   double width;
   double fontSize;
+
 
   @override
   void initState() {

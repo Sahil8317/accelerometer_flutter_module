@@ -1,9 +1,9 @@
 
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-
-void main() => runApp(WelcomeScreen());
 
 class WelcomeScreen extends StatefulWidget {
   @override
@@ -13,14 +13,12 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
-        resizeToAvoidBottomPadding: false,
+        resizeToAvoidBottomInset: false,
         body: WelcomeScreenBody(),
-      ),
-    );
+      );
+
   }
 }
 
@@ -30,6 +28,90 @@ class WelcomeScreenBody extends StatefulWidget {
 }
 
 class _WelcomeScreenBodyState extends State<WelcomeScreenBody> {
+ static const platform =  const MethodChannel("com.sahil.accelerometer");   // channel 1
+ final numberController = TextEditingController();
+ final otpFieldController = TextEditingController();
+ bool readOnly = false;
+
+ bool otpSend = false;
+ bool isNumberValid = true;
+ bool onClickListener = false;
+ String mobileNumber;
+
+/// function for automatic verification
+  Future<void> startLoginProcess(String number) async {
+    try{
+      print("good to go");
+     final result =  await platform.invokeMethod("startLogin",number);
+      print(result);
+      print("wowww");
+      if(result=="failed 1"){
+        // invalid code resend otp
+
+      }else{
+        if(result=="failed 2"){
+          // try after some time
+        }else{
+          Navigator.pushNamed(context, result);  // push to second screen
+        }
+      }
+    }catch(exception){
+      print("error");
+      print(exception);
+    }
+  }
+ void _showLoadingDialog(){
+   showDialog(
+       context: context,
+       barrierDismissible: false,
+       builder: (BuildContext context){
+         return AlertDialog(
+
+           content: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               CircularProgressIndicator(color: Colors.blueAccent),
+               SizedBox(height: 8),
+               Text("Verifying OTP...",style: TextStyle(color:  Color(0xff759AF3)))
+             ],
+           ),
+         );
+       });
+
+ }
+  /// function for manual verification from user
+
+  Future<void> verifyOTP(String otp) async{
+    try{
+      _showLoadingDialog();
+      print("good to goo");
+      print(otp);
+      final result = await platform.invokeMethod("verifyOTP",otp);
+      print("yessssssssss");
+      print(result);
+      if(result=="invalid code"){
+        Navigator.pop(context);
+      }else{
+        // on success
+        Navigator.pop(context);
+        Navigator.pushNamed(context, result);
+      }
+    }catch(ex){
+      print(ex);
+    }
+  }
+
+
+
+  void _validateNumber(String value){
+    RegExp regex = new RegExp(r'^[6-9]\d{9}$');
+    if(regex.hasMatch(value)){
+      isNumberValid=true;
+    }else{
+      isNumberValid=false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
@@ -113,58 +195,119 @@ class _WelcomeScreenBodyState extends State<WelcomeScreenBody> {
                   child: Container(
                     padding: EdgeInsets.all(6),
                     child: TextField(
+                      maxLength: 10,
+                      controller: numberController,
+                      readOnly: readOnly,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.email,size: 22,),
-                        suffixIcon: Icon(Icons.check,color: Colors.green,size: 20,),
+                        counterText: "",
+                        prefixIcon: Icon(Icons.phone,size: 22,),
+                        suffixIcon:onClickListener?isNumberValid? Icon(Icons.check,color: Colors.green,size: 20,):Icon(Icons.error,color: Colors.redAccent,)
+                            :Container(height: 0,width: 0,),
                         isDense: true,
-                        hintText: "Enter your Email ID",
+                        hintText: "Enter your Number",
                         contentPadding: EdgeInsets.all(15) ,
                         focusColor: Colors.lightBlue,
                       ),
-                      keyboardType: TextInputType.emailAddress,
+                      keyboardType: TextInputType.number,
                     ),
                   ),
                 ),
               ),
-              Flexible(
+             isNumberValid?Container(height: 0,width: 0,):
+             Align(
+               alignment: Alignment.bottomLeft,
+                 child: Padding(
+                   padding: const EdgeInsets.only(left: 20),
+                   child: Text("Enter valid Phone Number",style: TextStyle(color: Colors.redAccent,letterSpacing: 1)),
+                 )),
+             otpSend? Flexible(
                 flex: 1,
                 child: Padding(
                   padding: const EdgeInsets.only(left:18,right: 18),
                   child: Container(
                     padding: EdgeInsets.all(6),
                     child: TextField(
-                      obscureText: true,
+                      controller: otpFieldController,
+                      maxLength: 6,
+                      autofocus: true,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.lock,size: 22),
-                        suffixIcon: Icon(Icons.check,color: Colors.green),
-                        hintText: "Enter Your Password",
+                       counter: Row(
+                         mainAxisAlignment: MainAxisAlignment.end,
+                         children: [
+                           Icon(Icons.autorenew_sharp,color: Colors.redAccent,size: 17),
+                           Text("Auto-Detecting",style: TextStyle(color: Colors.redAccent,fontWeight: FontWeight.bold)),
+                         ],
+                       ),
+                       prefixIcon: Icon(Icons.lock,size: 22),
+                        //suffixIcon: Icon(Icons.check,color: Colors.green),
+                        hintText: "Enter OTP",
                         isDense: true,
                         contentPadding: EdgeInsets.all(15),
                         focusColor: Colors.lightBlue,
                       ),
+
+                      keyboardType: TextInputType.number,
                     ),
                   ),
-                ),
-              ),
-              SizedBox(height: 50,),
+                )
+              ):Container(height: 0,width: 0,),
+              SizedBox(height: 20,),
               Flexible(
                 flex: 1,
-                child: Container(
-                  height: 40,
-                  width: 290,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(12)) ,
-                    color: Colors.blueAccent
-                    // gradient: LinearGradient(
-                    //   begin: Alignment.centerLeft,
-                    //   end: Alignment.centerRight,
-                    //   colors: [
-                    //    // Color(0xff419CB1),
-                    //     Color(0xff759AF3),
-                    //   ],
-                    // )
+                child: otpSend?GestureDetector(
+                  onTap: (){
+                    print("verifying");
+                    verifyOTP(otpFieldController.text);
+                  },
+                  child: Container(
+                    height: 40,
+                    width: 290,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(12)) ,
+                        color: Colors.blueAccent
+                      // gradient: LinearGradient(
+                      //   begin: Alignment.centerLeft,
+                      //   end: Alignment.centerRight,
+                      //   colors: [
+                      //    // Color(0xff419CB1),
+                      //     Color(0xff759AF3),
+                      //   ],
+                      // )
+                    ),
+                    child: Center(child: Text("Verify OTP",style: TextStyle(color: Colors.white,letterSpacing: 1,fontSize: 16,fontWeight: FontWeight.bold)),
+                  ))
+                ):GestureDetector(
+                  onTap: (){
+                    print("started");
+                    setState(() {
+                      _validateNumber(numberController.text);
+                      onClickListener=true;
+                      if(isNumberValid){
+                        otpSend=true;
+                        readOnly = true;
+                        startLoginProcess(numberController.text);
+                      }
+                    });
+                  },
+                  child: Container(
+                    height: 40,
+                    width: 290,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(12)) ,
+                      color: Colors.blueAccent
+                      // gradient: LinearGradient(
+                      //   begin: Alignment.centerLeft,
+                      //   end: Alignment.centerRight,
+                      //   colors: [
+                      //    // Color(0xff419CB1),
+                      //     Color(0xff759AF3),
+                      //   ],
+                      // )
+                    ),
+                    child: Center(child:Text("Send OTP",style: TextStyle(color: Colors.white,letterSpacing: 1,fontSize: 16,fontWeight: FontWeight.bold))),
                   ),
-                  child: Center(child: Text("Log IN",style: TextStyle(color: Colors.white,letterSpacing: 1,fontSize: 16,fontWeight: FontWeight.bold))),
                 ),
               ),
             ],
